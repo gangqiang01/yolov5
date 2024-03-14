@@ -33,6 +33,7 @@ import csv
 import os
 import platform
 import sys
+import signal
 from pathlib import Path
 
 import torch
@@ -67,6 +68,16 @@ from utils.torch_utils import select_device, smart_inference_mode
 
 
 @smart_inference_mode()
+def closed_handler(signal, frame, vid_writer):
+    for item in vid_writer:
+        item.release()
+    LOGGER.info("close terminal")
+    cv2.destroyAllWindows()
+    raise StopIteration
+def signal_handler_wrapper(arg1):  
+    def real_handler(signum, frame):  
+        closed_handler(signum, frame, arg1)  
+    return real_handler  
 def run(
     weights=ROOT / "yolov5s.pt",  # model path or triton URL
     source=ROOT / "data/images",  # file/dir/URL/glob/screen/0(webcam)
@@ -97,6 +108,7 @@ def run(
     dnn=False,  # use OpenCV DNN for ONNX inference
     vid_stride=1,  # video frame-rate stride
 ):
+    
     source = str(source)
     save_img = not nosave and not source.endswith(".txt")  # save inference images
     is_file = Path(source).suffix[1:] in (IMG_FORMATS + VID_FORMATS)
@@ -127,7 +139,7 @@ def run(
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
-
+    signal.signal(signal.SIGINT, signal_handler_wrapper(vid_writer)) 
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
