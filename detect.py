@@ -65,6 +65,7 @@ from utils.general import (
     xyxy2xywh,
 )
 from utils.torch_utils import select_device, smart_inference_mode
+from datetime import datetime, timedelta
 
 
 @smart_inference_mode()
@@ -78,6 +79,14 @@ def signal_handler_wrapper(arg1):
     def real_handler(signum, frame):  
         closed_handler(signum, frame, arg1)  
     return real_handler  
+def is_timestamp_more_than_minutes(timestamp_end, timestamp_start):
+    LOGGER.info(timestamp_end)
+    dt1 = datetime.fromtimestamp(timestamp_end)
+    dt2 = datetime.fromtimestamp(timestamp_start)
+    diff = dt2 - dt1
+
+# 检查时间差是否等于10分钟
+    return diff >timedelta(minutes=10) 
 def run(
     weights=ROOT / "yolov5s.pt",  # model path or triton URL
     source=ROOT / "data/images",  # file/dir/URL/glob/screen/0(webcam)
@@ -144,6 +153,8 @@ def run(
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
+    standardTime = datetime.now()
+    saveVideoFileName = ""
     for path, im, im0s, vid_cap, s in dataset:
         with dt[0]:
             im = torch.from_numpy(im).to(model.device)
@@ -252,7 +263,14 @@ def run(
                 if dataset.mode == "image":
                     cv2.imwrite(save_path, im0)
                 else:  # 'video' or 'stream'
-                    if vid_path[i] != save_path:  # new video
+                    endTime = datetime.now()
+                    if vid_path[i] == None or is_timestamp_more_than_minutes(int(endTime.timestamp()), int(standardTime.timestamp())):  # new video
+                        standardTime = endTime
+                        time_str = endTime.strftime("%y-%m-%d-%H-%M-%S")
+                        save_path = str(save_dir / time_str)
+                        LOGGER.info("save path:"+save_path)
+                        save_path = str(Path(save_path).with_suffix(".mp4")) 
+                        saveVideoFileName = save_path
                         vid_path[i] = save_path
                         if isinstance(vid_writer[i], cv2.VideoWriter):
                             vid_writer[i].release()  # release previous video writer
@@ -262,12 +280,12 @@ def run(
                             h = int(vid_cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
-                        save_path = str(Path(save_path).with_suffix(".mp4"))  # force *.mp4 suffix on results videos
+                         # force *.mp4 suffix on results videos
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
-        LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
+        LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{saveVideoFileName}")
 
     # Print results
     t = tuple(x.t / seen * 1e3 for x in dt)  # speeds per image
@@ -310,7 +328,7 @@ def parse_opt():
     parser.add_argument("--half", action="store_true", help="use FP16 half-precision inference")
     parser.add_argument("--dnn", action="store_true", help="use OpenCV DNN for ONNX inference")
     parser.add_argument("--vid-stride", type=int, default=1, help="video frame-rate stride")
-    parser.add_argument("--labels", nargs="+", type=str, help="filter by labels: --labels person, or --labels person cut")
+    parser.add_argument("--labels", nargs="+", type=str, help="filter by labels: --labels person, or --labels person cat")
     opt = parser.parse_args()
     opt.imgsz *= 2 if len(opt.imgsz) == 1 else 1  # expand
     print_args(vars(opt))
