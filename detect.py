@@ -268,9 +268,8 @@ def run(
                         standardTime = endTime
                         time_str = endTime.strftime("%y-%m-%d-%H-%M-%S")
                         save_path = str(save_dir / time_str)
-                        LOGGER.info("save path:"+save_path)
                         save_path = str(Path(save_path).with_suffix(".mp4")) 
-                        saveVideoFileName = save_path
+                        saveVideoFileName = str(Path(time_str).with_suffix(".mp4")) 
                         vid_path[i] = save_path
                         if isinstance(vid_writer[i], cv2.VideoWriter):
                             vid_writer[i].release()  # release previous video writer
