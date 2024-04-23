@@ -80,13 +80,11 @@ def signal_handler_wrapper(arg1):
         closed_handler(signum, frame, arg1)  
     return real_handler  
 def is_timestamp_more_than_minutes(timestamp_end, timestamp_start):
-    LOGGER.info(timestamp_end)
-    dt1 = datetime.fromtimestamp(timestamp_end)
-    dt2 = datetime.fromtimestamp(timestamp_start)
-    diff = dt2 - dt1
-
+    
+    diff = timestamp_end - timestamp_start
+    LOGGER.info(diff)
 # 检查时间差是否等于10分钟
-    return diff >timedelta(minutes=10) 
+    return diff > 1*60
 def run(
     weights=ROOT / "yolov5s.pt",  # model path or triton URL
     source=ROOT / "data/images",  # file/dir/URL/glob/screen/0(webcam)
@@ -264,6 +262,7 @@ def run(
                     cv2.imwrite(save_path, im0)
                 else:  # 'video' or 'stream'
                     endTime = datetime.now()
+                    
                     if vid_path[i] == None or is_timestamp_more_than_minutes(int(endTime.timestamp()), int(standardTime.timestamp())):  # new video
                         standardTime = endTime
                         time_str = endTime.strftime("%y-%m-%d-%H-%M-%S")
@@ -281,6 +280,8 @@ def run(
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                          # force *.mp4 suffix on results videos
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+                        im0 = cv2.resize(im0, (w // 5, h // 5))
+
                     vid_writer[i].write(im0)
 
         # Print time (inference-only)
