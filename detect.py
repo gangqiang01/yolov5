@@ -126,7 +126,8 @@ def run(
         source = check_file(source)  # download
 
     # Directories
-    save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
+    # save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
+    save_dir = Path(project) / name
     (save_dir / "labels" if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
@@ -227,25 +228,41 @@ def run(
                     label = names[c] if hide_conf else f"{names[c]}"
                     confidence = float(conf)
                     confidence_str = f"{confidence:.2f}"
-                    for l in labels:
-                        # LOGGER.info("label:"+l+"## detect name:"+names[int(cls)])
-                        if l == label:
-                            if save_csv:
-                                write_to_csv(p.name, label, confidence_str)
+                    if labels is not None:
+                         for l in labels:
+                            # LOGGER.info("label:"+l+"## detect name:"+names[int(cls)])
+                            if l == label:
+                                if save_csv:
+                                    write_to_csv(p.name, label, confidence_str)
 
-                            if save_txt:  # Write to file
-                                xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
-                                line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
-                                with open(f"{txt_path}.txt", "a") as f:
-                                    f.write(("%g " * len(line)).rstrip() % line + "\n")
+                                if save_txt:  # Write to file
+                                    xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                                    line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+                                    with open(f"{txt_path}.txt", "a") as f:
+                                        f.write(("%g " * len(line)).rstrip() % line + "\n")
 
-                            if save_img or save_crop or view_img:  # Add bbox to image
-                                c = int(cls)  # integer class
-                                label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
-                                annotator.box_label(xyxy, label, color=colors(c, True))
-                            if save_crop:
-                                save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
+                                if save_img or save_crop or view_img:  # Add bbox to image
+                                    c = int(cls)  # integer class
+                                    label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
+                                    annotator.box_label(xyxy, label, color=colors(c, True))
+                                if save_crop:
+                                    save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
 
+                    else:
+                        if save_csv:
+                            write_to_csv(p.name, label, confidence_str)
+                        if save_txt:  # Write to file
+                            xywh = (xyxy2xywh(torch.tensor(xyxy).view(1, 4)) / gn).view(-1).tolist()  # normalized xywh
+                            line = (cls, *xywh, conf) if save_conf else (cls, *xywh)  # label format
+                            with open(f"{txt_path}.txt", "a") as f:
+                                f.write(("%g " * len(line)).rstrip() % line + "\n")
+
+                        if save_img or save_crop or view_img:  # Add bbox to image
+                            c = int(cls)  # integer class
+                            label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
+                            annotator.box_label(xyxy, label, color=colors(c, True))
+                        if save_crop:
+                            save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
             # Stream results
             im0 = annotator.result()
             if view_img:
