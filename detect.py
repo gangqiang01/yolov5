@@ -296,7 +296,7 @@ def run(
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                          # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"avc1"), fps, (w, h))
                         im0 = cv2.resize(im0, (w // 5, h // 5))
 
                     vid_writer[i].write(im0)
