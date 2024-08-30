@@ -107,7 +107,7 @@ def run(
     update=False,  # update all models
     project=ROOT / "runs/detect",  # save results to project/name
     name="exp",  # save results to project/name
-    exist_ok=False,  # existing project/name ok, do not increment
+    exist_ok=True,  # existing project/name ok, do not increment
     line_thickness=3,  # bounding box thickness (pixels)
     hide_labels=False,  # hide labels
     hide_conf=False,  # hide confidences
@@ -126,8 +126,8 @@ def run(
         source = check_file(source)  # download
 
     # Directories
-    # save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
-    save_dir = Path(project) / name
+    save_dir = increment_path(Path(project) / name, exist_ok=exist_ok)  # increment run
+    # save_dir = Path(project) / name
     (save_dir / "labels" if save_txt else save_dir).mkdir(parents=True, exist_ok=True)  # make dir
 
     # Load model
@@ -296,11 +296,12 @@ def run(
                         else:  # stream
                             fps, w, h = 30, im0.shape[1], im0.shape[0]
                          # force *.mp4 suffix on results videos
-                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"avc1"), fps, (w, h))
+                        vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
                         im0 = cv2.resize(im0, (w // 5, h // 5))
 
                     vid_writer[i].write(im0)
-
+        detectImgPath =  str(save_dir / "detect.jpg")
+        cv2.imwrite(detectImgPath, im0)
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{saveVideoFileName}")
 
